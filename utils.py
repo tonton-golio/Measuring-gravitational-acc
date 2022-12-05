@@ -34,19 +34,21 @@ def maximum_likelihood_finder(sample, a_mu = -2, b_mu =2, a_sig = 0.5, b_sig = 0
 	xs = np.linspace(min(sample), max(sample), 100)
 
 	# determine likelihood  (should really implement bisection)
-	log_likelihood = lambda mu=0, sig=1: np.sum(np.log(norm.pdf(sample, scale=sig, loc=mu)))
+	log_likelihood = lambda mu=0, sig=1, a=1: a*np.sum(np.log(norm.pdf(sample, scale=sig, loc=mu)))
 
 
 	# golden_section_min
 	
 	
 	start_golden_search = time()
-	f_mu_neg = lambda mu:-1*log_likelihood(mu, sig=1)
+	f_mu_neg = lambda mu:-1*log_likelihood(mu, sig=1, a=1)
 	mu_best, ncalls_mu = golden_section_min(f_mu_neg,a_mu,b_mu,tolerance=1e-5, maxitr=1e3)
 
-	f_sig_neg = lambda sig:-1*log_likelihood(mu_best, sig)
+	f_sig_neg = lambda sig:-1*log_likelihood(mu_best, sig =1)
 	sig_best, ncalls_sig = golden_section_min(f_sig_neg,a_sig,b_sig,tolerance=1e-5, maxitr=1e3)
 	stop_golden_search = time()
+
+
 	
 	if verbose:
 		cols = st.columns(2)
@@ -83,4 +85,4 @@ def maximum_likelihood_finder(sample, a_mu = -2, b_mu =2, a_sig = 0.5, b_sig = 0
 		plt.close()
 		return fig
 	if return_plot: return mu_best, sig_best, log_likelihood(mu_best, sig_best), plot()
-	else: return mu_best, sig_best, log_likelihood(mu_best, sig_best)
+	else: return mu_best, sig_best,  log_likelihood(mu_best, sig_best)
