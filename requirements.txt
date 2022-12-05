@@ -2,6 +2,6 @@ streamlit
 numpy
 matplotlib
 scipy
-pandas
+pandas==1.5.2
 time
 seaborn
