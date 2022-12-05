@@ -7,43 +7,65 @@ from utils import *
 > instead measure number of swings. This lets us plot number of swings versus time
 """
 
+"""
+## Cut of tail?
+Some fuckery occurs at the end, show we just chop it off? 
+"""
+
+
 df = pd.read_csv("data_project1 - pendul_time.csv", index_col=0, header=[0])
+
+chop = st.button('chop', )
+if chop:
+	df = df[:25]
+
+
 cols = st.columns(2)
-cols[0].table(df.T)#.T # view
+times  =df[['time_Anton',	
+			'time_Adrian',	
+			'time_Imke',
+			'time_Majbritt',	
+			'time_Michael']] # view
+times -= times.iloc[0]
+#times.drop(index=1, inplace=True)#
+times.reset_index(inplace=True)
+times.drop(columns=['number of swings'], inplace=True)
+times
+# should we just take the mean and std like this?
+mean_time = times.mean(axis=1) # we have the 
+# same uncertainties for now, so this is fine
+std_time = times.std(axis=1)
 
-x = np.hstack(list(df.index)*5)
-y = []
-yerr = []
+fig, ax = plt.subplots(1,2,figsize=(12,6))
 
-fig, ax = plt.subplots()
-
-for t_col, terr_col in zip(df.columns[::2], df.columns[1:][::2]):
-	who = t_col.split('_')[1]
-	ax.errorbar(df.index, df[t_col], 10*df[terr_col], marker='x',
-          ms=2, lw=0, elinewidth=1,capsize=1, label=who)
-	y.append(df[t_col].values)
-	yerr.append(df[terr_col].values)
-ax.legend()
-
-# now lets take the weighted mean at each number of swings
-
-
-y = np.array(y).flatten()
-yerr = np.array(yerr).flatten()
+ax[0].errorbar(times.index, mean_time,std_time)
 
 
-cols[1].pyplot(fig)
+
+
+x = np.array(list(times.index))
+y = mean_time
 
 
 popt, pcov = curve_fit(linear_0Bound, x, y, p0=[1])  # origin bound linear fit, slope is T
-
+# minuit
 T = popt[0]
 Td = y-x*T
+
+
+
+
+for t in times.columns:
+	ax[0].scatter(times.index, times[t], marker='x', s=50, label=t.split('_')[1])
+
+
 
 mu_best, sig_best, log_likelihood = maximum_likelihood_finder(Td, a_mu = -1, b_mu =1, a_sig = 0.5, b_sig = 5, return_plot=False, verbose=False)
 
 
-fig, ax = plt.subplots(1,2, figsize=(12,5))
+
+
+
 ax[0].scatter(x, y)
 x_plot = np.linspace(min(x), max(x)+5, 100)
 ax[0].plot(x_plot, linear_0Bound(x_plot, *popt), label=f'f=({round(popt[0], 3)}$\pm?$)x')
@@ -52,7 +74,7 @@ ax[0].set(title = "Period = $t/N$", ylabel = "time, $t$", xlabel = "number of sw
             xlim = (0,max(x)*1.1), ylim = (0,max(y)*1.1)) 
 
 
-(counts, bins, _) = ax[1].hist(Td, bins=20)
+(counts, bins, _) = ax[1].hist(Td, bins=10)
 x_plot = np.linspace(min(bins)*2, max(bins)*2, 100)
 plt.plot(x_plot, len(x)**.5*norm.pdf(x_plot, scale=sig_best, loc=mu_best))
 st.pyplot(fig)
