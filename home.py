@@ -6,9 +6,9 @@ import streamlit as st
 # brief overview
 
 st.markdown(r'''
-change
+
 ## Intro
-The determination of the gravitational acceleration constant, commonly referred to as $g$, is a fundamental concept in the study of classical mechanics. In this paper, we present two methods for determining the value of $g$: the pendulum method and the inclined plane method. In the pendulum method, the relationship between the length of a pendulum and its period is utilized to calculate $g$. In the inclined plane method, the acceleration of a ball rolling down an inclined plane is used to determine $g$. The results of these methods are compared and discussed in terms of their accuracy and limitations.
+The gravitational acceleration constant $g$ can be determined by fundamental concepts in classical mechanics. In this paper, we present two methods for this, using a pendulum and rolling a ball down an inclined plane. In the pendulum method, the relationship between the length of a pendulum and its period is utilized to calculate $g$. In the inclined plane method, the acceleration of the ball is used to determine $g$. The results of these methods are compared and discussed in terms of their accuracy and limitations.
 
 For these methods to be valid; we make a series of key assumptions:
 * rolling without slipping (I guess we could calculate whether we will slip.)
