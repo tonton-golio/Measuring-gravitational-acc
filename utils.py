@@ -8,7 +8,6 @@ from scipy.stats import norm
 from time import time
 
 
-
 def linear_0Bound(x, a):
     return a*x
 
