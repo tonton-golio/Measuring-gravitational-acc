@@ -1,8 +1,9 @@
-from utils import *
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
 import seaborn as sns
-
+from uncertainties import ufloat
+from math import pi
+from utils import *
 
 def times_func():
 	df = pd.read_csv("data_project1 - pendul_time.csv", index_col=0, header=[0])
@@ -12,12 +13,12 @@ def times_func():
 	chop = st.button('chop', )
 	if chop:
 		df = df[:22]
-
-
+    
+    
 	cols = st.columns(2)
-	times  = df[[f'time_{name}' for name in ['Anton','Adrian','Imke','Majbritt',	'Michael']]]
+	times  = df[[f'time_{name}' for name in ['Anton','Adrian','Imke','Majbritt', 'Michael']]]
 	times -= times.iloc[0] # subtract initial time
-
+    
 	times.reset_index(inplace=True)
 	times.drop(columns=['number of swings'], inplace=True)
 
@@ -137,9 +138,20 @@ $$
 > How do we propagate the error to $g$?
 '''
 
-f"""
-$$
-	g = {g:.3f} \pm ????{1:.3f}
-$$
+L = ufloat(18.728, 0.0005)
+T = ufloat(8.640, 0.100)
+g_real = 9.81563 #at (55.697039, 12.571243)
+
+def grav_acc(L,T):
+    return L*(2*pi/T)**2
+
+
+g = grav_acc(L,T)
+
+st.markdown(
 """
+$$
+	g = {:10.2f}
+$$
+""".format(g))
 
