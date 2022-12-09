@@ -6,4 +6,4 @@ hookheight (cm),2,0.2,1.97,0.01,1.96,0.1,1.97,0.01,1.97,0.01
 pendulumFROMground (cm),20.5,2,20.5,2,20.6,2,20.6,2,20.4,2
 Height of pendulum with hook (cm),3,0.05,3.01,0.05,3.025,0.05,5.021,0.01,3.01,0.01
 Height of pendulum without hook (cm),5,0.05,5.038,0.05,5.006,0.004,3.01,0.01,5.06,0.03
-Pendulum length with tape (mm),,,18730,2,,,18742,10,18749.5,8
+Pendulum length with tape (mm),18.735,5,18730,2,18.724,3,18742,10,18749.5,8
