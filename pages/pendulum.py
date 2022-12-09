@@ -18,15 +18,19 @@ def times_func():
 		if chop:
 			df = df[:22]
 
+
 		cols = st.columns(2)
 		times  = df[[f'time_{name}' for name in ['Anton','Adrian','Imke','Majbritt', 'Michael']]]
 		times -= times.iloc[0] # subtract initial time
 		if remove_drunk:
 			times = times.copy().drop(columns=['time_Imke', 'time_Anton'])
+			A=2
+		else:
+			A=75
 		
 		times.reset_index(inplace=True)
 		times.drop(columns=['number of swings'], inplace=True)
-		return times
+		return times, A
 	def initaxgrid():
 		fig = plt.figure(constrained_layout=True,figsize=(12,6))
 		gs = GridSpec(2, 3, figure=fig)
@@ -36,7 +40,7 @@ def times_func():
 				fig.add_subplot(gs[:, 2])]
 		return fig, ax
 	
-	times = prepDataFrame()
+	times, A = prepDataFrame()
 	x = np.array(list(times.index))
 	y = mean_time = times.mean(axis=1)  # same uncertainties so for now; this is fine
 	yerr = times.std(axis=1)
@@ -59,18 +63,15 @@ def times_func():
 		
 	
 	# lets tally those in a hist
-	(counts, bins, _) = ax[2].hist(off_from_mean, bins=20)
-	mu_best, sig_best, log_likelihood = maximum_likelihood_finder(counts/max(counts), 
-													a_mu = -.5, b_mu =.5, 
-													a_sig = 0.1, b_sig = 10.,
-													return_plot=False, verbose=False)
-
-													# that didnt quite work...
+	(counts, bins, _) = ax[2].hist(off_from_mean, bins=25)
 	
-	mu_best, sig_best, A = 0,.1,1.5
+	mu_best, sig_best, _ = maximum_likelihood_finder(off_from_mean)
+	
+	
+	
 
-	x_plot = np.linspace(min(bins), max(bins), 100)
-	ax[2].plot(x_plot, A*norm.pdf(x_plot, scale=sig_best, loc=mu_best))
+	x_plot = np.linspace(min(off_from_mean), max(off_from_mean), 100)
+	ax[2].plot(x_plot, A*norm.pdf(x_plot, scale=sig_best, loc=mu_best), label=f'normal, {round(mu_best,3)}, {round(sig_best,3)}')
 	ax[2].set(xlabel='Deviation', ylabel='frequency')
 
 
@@ -128,6 +129,8 @@ def main():
 		g = L\left(\frac{2\pi}{T}\right)^2
 	$$
 	"""
+
+
 	############ T
 	"##### Period"
 
@@ -142,7 +145,6 @@ def main():
 	""".format(T))
 
 
-
 	############ L
 	"##### Length"
 
@@ -154,6 +156,7 @@ def main():
 	st.pyplot(fig) # Should be clearer colors and Rotate bars
 
 	st.markdown("""
+	If we shouldn't comebine the numbers from the box_plot, we get:
 	$$
 		L = {:10.4f}
 	$$
