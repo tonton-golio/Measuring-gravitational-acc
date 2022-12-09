@@ -6,17 +6,15 @@ from math import pi
 from utils import *
 
 
-
 def times_func():
 	def prepDataFrame():
 		df = pd.read_csv("data_project1 - pendul_time.csv", index_col=0, header=[0])
-		"""
-		###### Exclude some data?
-		"""
+		
 
-		cols = st.columns(2)
-		chop = cols[0].radio('Chop tail?', [True, False])
-		remove_drunk = cols[1].radio('Remove drunk lab-rats?', [True, False])
+		cols = st.columns(3)
+		cols[0].markdown("###### Exclude some data?")
+		chop = cols[1].radio('Chop tail?', [True, False])
+		remove_drunk = cols[2].radio('Remove drunk lab-rats?', [True, False])
 		if chop:
 			df = df[:22]
 
@@ -56,7 +54,7 @@ def times_func():
 	off_from_mean = (times-X*T).values.flatten()
 	for t in times.columns:
 		ax[1].scatter(times.index, times[t]-x*T, marker='x', s=50, label=t.split('_')[1])
-	ax[1].set_yticks([-.2, 0, .2], [-.2, 'mean', .2], )
+	#ax[1].set_yticks([-.2, 0, .2], [-.2, 'mean', .2], )
 	ax[1].set(xlabel='swing counter', ylabel='deviation from fit')
 		
 	
@@ -80,91 +78,105 @@ def times_func():
 		ax[3].plot(range(len(times)-1),times[col].values[1:] - times[col].values[:-1], label=col)
 	ax[3].set(xlabel='Swing Counter', ylabel='Period')
 	_ = [i.legend() for i in ax]
-	st.pyplot(fig)
+	plt.close()
 
 	
-	st.markdown(f"""
-	So we obtain:
-	$$
-		T = {T:.3f} \pm {sig_best:.3f}
-	$$
-	""")
+	T = ufloat(T, sig_best)
 
-	return T, sig_best
-
+	return T, fig
 
 def otherMeasurements():
-	df = pd.read_csv("data_project1 - pendul_other.csv", index_col=0, header=[1])
-	df_err = df[df.columns[1::2]].T
-	df = df[df.columns[::2]].T
-	df
-
-	fig, ax = plt.subplots(figsize=(12,4))
-	df_scaled = df/df.mean(axis=0) #we value which we divide by,  should be moved onto the plot
-	df_scaled.boxplot(vert=False)
-	mu_round = np.round(df.mean(axis=0), 3)
-	std_round = np.round(df.std(axis=0), 3)
-	#for i, (m, std) in enumerate(zip(mu_round, std_round)):
-	#	plt.text(1.2, 1+i, f'$\mu = {m}, \sigma = {std}$')
-
-	ax.set(xlabel='Value/mean')
-	st.pyplot(fig)  # also, can we turn this plot -pi/2
-
-
-	fig, ax = plt.subplots(1,2, figsize=(6,3))
-	L = np.mean(df['Pendulum Length (mm)']) / 1000 # m
-	Lerr = np.std(df['Pendulum Length (mm)']) / 1000 # m
+	df_orig = pd.read_csv("data_project1 - pendul_other.csv", index_col=0, header=[1])
+	df_err = df_orig[df_orig.columns[1::2]].T
+	df = df_orig.copy()[df_orig.columns[::2]].T
 	
 	
-	f"""
-	> Should be more clear colors.
-	So we obtain:
-	$$
-		L = {L:.3f} \pm {Lerr:.4f}
-	$$
+	w = weigted_dict = {}
+	for col in df.columns:
+		mean_weighted = sum(df[col].values * df_err[col].values)/ df_err[col].sum()
+		std_weighted = np.sqrt(1/sum(1/df_err[col].values))
+		w[col] = ufloat(mean_weighted, std_weighted)
+		
+	def plotBox():
+		fig, ax = plt.subplots(figsize=(12,4))
+		df_scaled = df/df.mean(axis=0)
+		df_scaled.boxplot(vert=False)
 
+		for i, col in enumerate(df.columns):
+			rounded = np.round([w[col].n,w[col].s],3)
+			plt.text(1.0085, .6+i, 
+								# weighted averages
+								r'$\hat{\mu} = $' + str(rounded[0]) +\
+								r'  $\hat{\sigma} = $' + str(rounded[1])+\
+								# mean and std
+								'\n$\mu = {}, \sigma = {}$'.format(*np.round([df[col].mean(),df[col].std()], 3)))
+
+		ax.set(xlabel='Value/mean')
+		plt.close()
+		return fig
+	
+	fig = plotBox()
+
+	return weigted_dict, df_orig, fig
+
+def main():
+	# Main render script
+	r"""
+	# Pendulum
+	Gravitational acc. is related to a pendulum's length and period by;
+	$$
+		g = L\left(\frac{2\pi}{T}\right)^2
+	$$
 	"""
-	return L, Lerr
+	############ T
+	"##### Period"
+
+	T, fig = times_func()
+	st.pyplot(fig)
+
+	st.markdown(
+	"""
+	$$
+		T = {:10.2f}
+	$$
+	""".format(T))
 
 
-# Main render script
-"""
-# pendulum
-## data 
-### period
-> instead measure number of swings. This lets us plot number of swings versus time
-"""
 
-T, Terr = times_func()
+	############ L
+	"##### Length"
 
-"### Other Measurements"
+	weigted_dict, df, fig =  otherMeasurements()
+	L = weigted_dict['Pendulum Length (all made by adrian in mm)']/1000 # m
 
-L, Lerr =  otherMeasurements()
+	with st.expander('raw', expanded=False):
+		df
+	st.pyplot(fig) # Should be clearer colors and Rotate bars
 
-'# g'
-g = L*(2*pi/T)**2
-
-r'''
-$$
-	g = L\left(\frac{2\pi}{T}\right)^2
-$$
-> How do we propagate the error to $g$?
-'''
-
-L = ufloat(18.728, 0.0005)
-T = ufloat(8.640, 0.100)
-g_real = 9.81563 #at (55.697039, 12.571243)
-
-def grav_acc(L,T):
-    return L*(2*pi/T)**2
+	st.markdown("""
+	$$
+		L = {:10.4f}
+	$$
+	""".format(L))
 
 
-g = grav_acc(L,T)
+	############ g
+	"##### Gravitational acc."
+	#L = ufloat(18.728, 0.0005) # i think this uncertainty is too small
+	#T = ufloat(8.640, 0.100)
 
-st.markdown(
-"""
-$$
-	g = {:10.2f}
-$$
-""".format(g))
+	def grav_acc(L,T):
+		return L*(2*pi/T)**2
 
+	g_real = 9.81563 #at (55.697039, 12.571243)
+	g = grav_acc(L,T)
+
+	st.markdown(
+	"""
+	$$
+		g = {:10.2f}
+	$$
+	""".format(g))
+
+
+main()
