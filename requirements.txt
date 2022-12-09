@@ -5,3 +5,4 @@ plotly==5.3.1
 numpy==1.21.4
 streamlit
 scipy==1.6.2
+uncertainties==3.1.7

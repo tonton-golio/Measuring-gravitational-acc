@@ -25,23 +25,25 @@ def golden_section_min(f,a,b,tolerance=1e-7, maxitr=1e3):
         else:
             b=d
         #st.write(f(a),f(c),f(d),f(b))
+        
         n_calls += 1
     return (c+d)/2, n_calls
 
-def maximum_likelihood_finder(sample, a_mu = -2, b_mu =2, a_sig = 0.5, b_sig = 0.5, return_plot=False, verbose=False):
+def maximum_likelihood_finder(sample, a_mu = -1, b_mu =1, 
+										a_sig = 0.5, b_sig = 0.5, 
+										return_plot=False, verbose=False):
 
 	xs = np.linspace(min(sample), max(sample), 100)
 
 	# determine likelihood  (should really implement bisection)
-	log_likelihood = lambda mu=0, sig=1, a=1: a*np.sum(np.log(norm.pdf(sample, scale=sig, loc=mu)))
-
+	log_likelihood = lambda mu=0, sig=1: np.sum(np.log(norm.pdf(sample, scale=sig, loc=mu)))
 
 	# golden_section_min
 	
 	
 	start_golden_search = time()
-	f_mu_neg = lambda mu:-1*log_likelihood(mu, sig=1, a=1)
-	mu_best, ncalls_mu = golden_section_min(f_mu_neg,a_mu,b_mu,tolerance=1e-5, maxitr=1e3)
+	f_mu_neg = lambda mu: -1*log_likelihood(mu, sig=1,)
+	mu_best, ncalls_mu = golden_section_min(f_mu_neg, a_mu,b_mu,tolerance=1e-5, maxitr=1e3)
 
 	f_sig_neg = lambda sig:-1*log_likelihood(mu_best, sig =1)
 	sig_best, ncalls_sig = golden_section_min(f_sig_neg,a_sig,b_sig,tolerance=1e-5, maxitr=1e3)
