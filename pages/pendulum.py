@@ -8,28 +8,26 @@ from utils import *
 
 def times_func():
 	def prepDataFrame():
+		# load 
 		df = pd.read_csv("data_project1 - pendul_time.csv", index_col=0, header=[0])
 		
-
+		# display options
 		cols = st.columns(3)
 		cols[0].markdown("###### Exclude some data?")
 		chop = cols[1].radio('Chop tail?', [True, False])
 		remove_drunk = cols[2].radio('Remove drunk lab-rats?', [True, False])
-		if chop:
-			df = df[:22]
-
-
-		cols = st.columns(2)
-		times  = df[[f'time_{name}' for name in ['Anton','Adrian','Imke','Majbritt', 'Michael']]]
-		times -= times.iloc[0] # subtract initial time
-		if remove_drunk:
-			times = times.copy().drop(columns=['time_Imke', 'time_Anton'])
-			A=2
-		else:
-			A=75
+		A = 2
+		if chop: df = df[:22]
+		if remove_drunk: df = df.copy().drop(columns=['time_Imke', 'time_Anton',
+													'terr_Imke', 'terr_Anton'])
+		else:A=75
 		
+		# extract times
+		times  = df[df.columns[:len(df.columns)//2]]
+		times -= times.iloc[0] # subtract initial time
 		times.reset_index(inplace=True)
 		times.drop(columns=['number of swings'], inplace=True)
+		
 		return times, A
 	def initaxgrid():
 		fig = plt.figure(constrained_layout=True,figsize=(12,6))
@@ -39,6 +37,7 @@ def times_func():
 				fig.add_subplot(gs[1, 1]), 
 				fig.add_subplot(gs[:, 2])]
 		return fig, ax
+	
 	
 	times, A = prepDataFrame()
 	x = np.array(list(times.index))
@@ -58,7 +57,6 @@ def times_func():
 	off_from_mean = (times-X*T).values.flatten()
 	for t in times.columns:
 		ax[1].scatter(times.index, times[t]-x*T, marker='x', s=50, label=t.split('_')[1])
-	#ax[1].set_yticks([-.2, 0, .2], [-.2, 'mean', .2], )
 	ax[1].set(xlabel='swing counter', ylabel='deviation from fit')
 		
 	
@@ -67,11 +65,10 @@ def times_func():
 	
 	mu_best, sig_best, _ = maximum_likelihood_finder(off_from_mean)
 	
-	
-	
 
 	x_plot = np.linspace(min(off_from_mean), max(off_from_mean), 100)
-	ax[2].plot(x_plot, A*norm.pdf(x_plot, scale=sig_best, loc=mu_best), label=f'normal, {round(mu_best,3)}, {round(sig_best,3)}')
+	ax[2].plot(x_plot, A*norm.pdf(x_plot, scale=sig_best, loc=mu_best), 
+				label = f'normal, {round(mu_best,3)}, {round(sig_best,3)}')
 	ax[2].set(xlabel='Deviation', ylabel='frequency')
 
 
@@ -81,12 +78,10 @@ def times_func():
 	_ = [i.legend() for i in ax]
 	plt.close()
 
-	
 	T = ufloat(T, sig_best)
-
 	return T, fig
 
-def otherMeasurements():
+def otherMeasurements(): # L
 	df_orig = pd.read_csv("data_project1 - pendul_other.csv", index_col=0, header=[1])
 	df_err = df_orig[df_orig.columns[1::2]].T
 	df = df_orig.copy()[df_orig.columns[::2]].T
@@ -120,8 +115,7 @@ def otherMeasurements():
 
 	return weigted_dict, df_orig, fig
 
-def main():
-	# Main render script
+def main(): # Main render script
 	r"""
 	# Pendulum
 	Gravitational acc. is related to a pendulum's length and period by;
