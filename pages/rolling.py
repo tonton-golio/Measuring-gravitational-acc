@@ -215,7 +215,7 @@ true_starts = look4peaks(filename, plot=True, cols=cols)
 '''Now lets look at all of them'''
 
 cols = st.columns(2)
-df = look4many(filenames, cols); df.to_csv('peaks.csv')
+#df = look4many(filenames, cols); df.to_csv('peaks.csv')
 
 df = pd.read_csv('peaks.csv', index_col=0)
 fit_values = next(df)
