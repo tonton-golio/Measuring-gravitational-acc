@@ -19,10 +19,11 @@ gate_positions = np.array([[176.4528302,	1.509433962],
 
 gate_positions_fmt = (gate_positions[:,0]-gate_positions[0,0])/1000
 
+
 other_measurements = {
     'theta' : {
-        0   : ufloat(75.81624549, 0.04061371841),#*np.pi/180,
-        180 : ufloat(76.18700361, 0.04061371841)#*np.pi/180
+        0   : (90-ufloat(75.81624549, 0.04061371841))*np.pi/180,
+        180 : (90-ufloat(76.18700361, 0.04061371841))*np.pi/180
     },
     'ball dia' : {
         'small' : ufloat(12.72857143, 0.003571428571)/1000,
@@ -30,6 +31,8 @@ other_measurements = {
     },
     'rail sepparation' : ufloat(5.95, 0.00625)/1000    
 }
+
+
 
 # funcs
 def look4peaks(filename, plot=False, cols=[]):
@@ -64,7 +67,7 @@ def look4peaks(filename, plot=False, cols=[]):
     return true_starts
 
 def quadratic(x, a, b, c):
-        return a*x**2 + b*x + c
+        return 1/2*a*x**2 + b*x + c
 
 def look4many(filenames, cols):
     all_starts = {}
@@ -212,7 +215,7 @@ true_starts = look4peaks(filename, plot=True, cols=cols)
 '''Now lets look at all of them'''
 
 cols = st.columns(2)
-#df = look4many(filenames, cols); df.to_csv('peaks.csv')
+df = look4many(filenames, cols); df.to_csv('peaks.csv')
 
 df = pd.read_csv('peaks.csv', index_col=0)
 fit_values = next(df)
@@ -226,10 +229,11 @@ for size in ['small', 'large']:
         a = fit_values[size+str(flip)][0]
         
         theta = other_measurements['theta'][flip]
-        R = other_measurements['ball dia'][size]
+        D = other_measurements['ball dia'][size]
         d = other_measurements['rail sepparation']
+        theta, D, d
 
-        g = a / sin(theta) * (1+2/5 * R**2/ (R**2 - (d/2)**2))
+        g = (a / sin(theta)) * (1 +  2/5 * D**2/ (D**2 - d**2))
 
         st.markdown("""
         {}, {} yields:
