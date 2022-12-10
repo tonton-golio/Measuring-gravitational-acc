@@ -5,7 +5,6 @@ from uncertainties import ufloat
 from math import pi
 from utils import *
 
-
 def times_func():
 	def prepDataFrame():
 		# load 
@@ -38,7 +37,7 @@ def times_func():
 				fig.add_subplot(gs[:, 2])]
 		return fig, ax
 	
-	
+
 	times, A = prepDataFrame()
 	x = np.array(list(times.index))
 	y = mean_time = times.mean(axis=1)  # same uncertainties so for now; this is fine
@@ -174,6 +173,5 @@ def main(): # Main render script
 		g = {:10.2f}
 	$$
 	""".format(g))
-
 
 main()

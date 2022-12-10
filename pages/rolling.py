@@ -21,8 +21,8 @@ gate_positions_fmt = (gate_positions[:,0]-gate_positions[0,0])/1000
 
 other_measurements = {
     'theta' : {
-        0   : ufloat(75.81624549, 0.04061371841)*np.pi/180,
-        180 : ufloat(76.18700361, 0.04061371841)*np.pi/180
+        0   : ufloat(75.81624549, 0.04061371841),#*np.pi/180,
+        180 : ufloat(76.18700361, 0.04061371841)#*np.pi/180
     },
     'ball dia' : {
         'small' : ufloat(12.72857143, 0.003571428571)/1000,
