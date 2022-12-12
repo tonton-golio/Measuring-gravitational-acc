@@ -117,6 +117,28 @@ def get_periods(pend_time):
     names = ['Adrian', 'Majbritt', 'Michael', 'Imke', 'Anton']
     return names, periods
 
+def return_L_T_g():
+    pend_other_data = pd.read_csv('data_project1 - pendul_other.csv',
+                                  skiprows=[0])
+    pend_time = pd.read_csv('data_project1 - pendul_time.csv')
+    
+    names, periods = get_periods(pend_time)
+    
+    #print(names)
+    #print(periods)
+    
+    #period including Anton and Imke
+    #T = (period_Anton + period_Adrian + period_Imke + period_Majbritt + period_Michael)/5
+    #print(T)
+    
+    #period without Anton and Imke
+    T = np.sum(periods[:3])/3
+    #print(T)
+    L = length_of_pend(pend_other_data)
+    
+    #print(grav_acc(L,T))
+    return L,T,grav_acc(L,T)
+
 def times_func():
 	def prepDataFrame():
 		# load 
@@ -225,28 +247,6 @@ def otherMeasurements(): # L
 	fig = plotBox()
 
 	return weigted_dict, df_orig, fig
-
-def return_L_T_g():
-    pend_other_data = pd.read_csv('data_project1 - pendul_other.csv',
-                                  skiprows=[0])
-    pend_time = pd.read_csv('data_project1 - pendul_time.csv')
-    
-    names, periods = get_periods(pend_time)
-    
-    print(names)
-    print(periods)
-    
-    #period including Anton and Imke
-    #T = (period_Anton + period_Adrian + period_Imke + period_Majbritt + period_Michael)/5
-    #print(T)
-    
-    #period without Anton and Imke
-    T = np.sum(periods[:3])/3
-    print(T)
-    L = length_of_pend(pend_other_data)
-    
-    print(grav_acc(L,T))
-    return L,T,grav_acc(L,T)
 
 def main(): # Main render script
 	r"""

@@ -6,10 +6,65 @@ from iminuit import Minuit, cost
 import seaborn as sns
 from uncertainties import ufloat
 from uncertainties.umath import sin
+from iminuit.util import make_func_code
+from iminuit import describe #, Minuit,
 
+def set_var_if_None(var, x):
+    if var is not None:
+        return np.array(var)
+    else: 
+        return np.ones_like(x)
+
+def compute_f(f, x, *par):
+    
+    try:
+        return f(x, *par)
+    except ValueError:
+        return np.array([f(xi, *par) for xi in x])
+
+class Chi2Regression:  # override the class with a better one
+        
+    def __init__(self, f, x, y, sy=None, weights=None, bound=None):
+        
+        if bound is not None:
+            x = np.array(x)
+            y = np.array(y)
+            sy = np.array(sy)
+            mask = (x >= bound[0]) & (x <= bound[1])
+            x  = x[mask]
+            y  = y[mask]
+            sy = sy[mask]
+
+        self.f = f  # model predicts y for given x
+        self.x = np.array(x)
+        self.y = np.array(y)
+        
+        self.sy = set_var_if_None(sy, self.x)
+        self.weights = set_var_if_None(weights, self.x)
+        self.func_code = make_func_code(describe(self.f)[1:])
+
+    def __call__(self, *par):  # par are a variable number of model parameters
+        
+        # compute the function value
+        f = compute_f(self.f, self.x, *par)
+        
+        # compute the chi2-value
+        chi2 = np.sum(self.weights*(self.y - f)**2/self.sy**2)
+        
+        return chi2
 
 # Data
-filenames = '''measurement1_large_0.csv, measurement3_small_180.csv, measurement1_large_180.csv, measurement4_large_0.csv, measurement1_small_0.csv, measurement4_large_180.csv, measurement1_small_180.csv, measurement4_small_0.csv, measurement2_large_0.csv, measurement4_small_180.csv, measurement2_large_180.csv, measurement5_large_0.csv, measurement2_small_0.csv, measurement5_large_180.csv, measurement2_small_180.csv, measurement5_small_0.csv, measurement3_large_0.csv, measurement5_small_180.csv, measurement3_large_180.csv, measurement6_large_180.csv, measurement3_small_0.csv'''.split(', ')#[:10]
+filenames = ['measurement1_large_0.csv', 'measurement3_small_180.csv', 
+             'measurement1_large_180.csv', 'measurement4_large_0.csv', 
+             'measurement1_small_0.csv', 'measurement4_large_180.csv', 
+             'measurement1_small_180.csv', 'measurement4_small_0.csv', 
+             'measurement2_large_0.csv', 'measurement4_small_180.csv', 
+             'measurement2_large_180.csv', 'measurement5_large_0.csv', 
+             'measurement2_small_0.csv', 'measurement5_large_180.csv', 
+             'measurement2_small_180.csv', 'measurement5_small_0.csv', 
+             'measurement3_large_0.csv', 'measurement5_small_180.csv', 
+             'measurement3_large_180.csv', 'measurement6_large_180.csv', 
+             'measurement3_small_0.csv']
 
 gate_positions = np.array([[176.4528302,	1.509433962],
                     [354.4226415,	1.509433962],	
@@ -38,13 +93,13 @@ def look4peaks(filename, plot=False, cols=[]):
     
     prefix = 'inclline_ball_voltage_measurements/'
     df = pd.read_csv(prefix+filename, encoding='utf-8', header=[13], index_col=0)
-
+    prev = False
     acti = {}
     pnum = -1
     for idx, t in enumerate(df.index):
 
         V = df['Channel 1 (V)'].iloc[idx]
-        if V > 2.2: 
+        if V > 4.758: 
             if prev == False:
                 pnum +=1
                 acti[pnum] = []
@@ -56,7 +111,7 @@ def look4peaks(filename, plot=False, cols=[]):
             
     vals = [np.mean(acti[key]) for key in acti]
 
-    errs = [np.std(acti[key]) for key in acti]
+    errs = [2*np.std(acti[key]) for key in acti]
 
 
     
@@ -120,6 +175,7 @@ def extract_values_for_fit(df_vals, df_errs):
 
     return xyyerr_values
 
+
 def fit_and_plot(xy_values):
     fig, ax = plt.subplots(1,4, figsize=(12,3))
     i = 0
@@ -131,10 +187,17 @@ def fit_and_plot(xy_values):
             ax[i].scatter(times, pos, s=4)
 
             ax[i].set(title=name, xlabel='time', ylabel='position')
-
+            """
+            chi2_object_simple = Chi2Regression(quadratic, times, pos)
+            m = Minuit(chi2_object_simple, a=1.0, b=1.0, c=1.0)
+            m.errordef = Minuit.LEAST_SQUARES  # == 1
+            m.migrad()
+            """
             c = cost.LeastSquares(times, pos, 0.01, quadratic)
             m = Minuit(c, 1.5, 0.5, 1)
             m.migrad()
+            
+            
 
             vals = [m.values[p] for p in 'a b c'.split()]
             errs = [m.errors[p] for p in 'a b c'.split()]
@@ -199,7 +262,6 @@ df_errs = pd.read_csv('peaks_errs.csv', index_col=0)
 
 
 xyyerr_values = extract_values_for_fit(df_vals, df_errs)
-
 
 fit_values = fit_and_plot(xyyerr_values)
 
