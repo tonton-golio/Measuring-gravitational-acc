@@ -9,7 +9,7 @@ from uncertainties.umath import sin
 
 
 # Data
-filenames = '''measurement1_large_0.csv, measurement3_small_180.csv, measurement1_large_180.csv, measurement4_large_0.csv, measurement1_small_0.csv, measurement4_large_180.csv, measurement1_small_180.csv, measurement4_small_0.csv, measurement2_large_0.csv, measurement4_small_180.csv, measurement2_large_180.csv, measurement5_large_0.csv, measurement2_small_0.csv, measurement5_large_180.csv, measurement2_small_180.csv, measurement5_small_0.csv, measurement3_large_0.csv, measurement5_small_180.csv, measurement3_large_180.csv, measurement6_large_180.csv, measurement3_small_0.csv'''.split(', ')[:]
+filenames = '''measurement1_large_0.csv, measurement3_small_180.csv, measurement1_large_180.csv, measurement4_large_0.csv, measurement1_small_0.csv, measurement4_large_180.csv, measurement1_small_180.csv, measurement4_small_0.csv, measurement2_large_0.csv, measurement4_small_180.csv, measurement2_large_180.csv, measurement5_large_0.csv, measurement2_small_0.csv, measurement5_large_180.csv, measurement2_small_180.csv, measurement5_small_0.csv, measurement3_large_0.csv, measurement5_small_180.csv, measurement3_large_180.csv, measurement6_large_180.csv, measurement3_small_0.csv'''.split(', ')#[:10]
 
 gate_positions = np.array([[176.4528302,	1.509433962],
                     [354.4226415,	1.509433962],	
@@ -39,65 +39,86 @@ def look4peaks(filename, plot=False, cols=[]):
     prefix = 'inclline_ball_voltage_measurements/'
     df = pd.read_csv(prefix+filename, encoding='utf-8', header=[13], index_col=0)
 
-    starts = []
-    for idx in range(len(df)-1):
-        i, j = df['Channel 1 (V)'].iloc[idx], df['Channel 1 (V)'].iloc[idx+1]
-        if j-i > 0.2: starts.append(df.index[idx])
-    #starts
-    true_starts = [starts[0]]
-    for i in starts:
-        true_starts = np.array(true_starts)
-        if (abs(i-true_starts) < 0.1).any():
-            pass
+    acti = {}
+    pnum = -1
+    for idx, t in enumerate(df.index):
+
+        V = df['Channel 1 (V)'].iloc[idx]
+        if V > 2.2: 
+            if prev == False:
+                pnum +=1
+                acti[pnum] = []
+            prev = True
+            acti[pnum].append(t)
         else:
-            true_starts = list(true_starts)
-            true_starts.append(i)
+            prev = False
+                
+            
+    vals = [np.mean(acti[key]) for key in acti]
+
+    errs = [np.std(acti[key]) for key in acti]
+
+
     
     if plot:
-        cols[0].write(f'Number of peaks found = {len(true_starts)}')
+        cols[0].write(f'Number of peaks found = {len(vals)}')
         fig, ax = plt.subplots()
         df.plot(ax=ax)
-        for i in true_starts:
-            ax.axvline(i)
-        dt = true_starts[1]-true_starts[0]
-        ax.set(xlim=(true_starts[0]-2*dt, true_starts[-1]+2*dt))
+        for v, e in zip(vals, errs):
+            ax.axvline(v, ls='--', c='r', label='midpoint')
+            ax.axvline(v-e, ls='--', c='orange', label=r'midpoint-1 $\sigma$')
+            ax.axvline(v+e, ls='--', c='orange', label=r'midpoint+1 $\sigma$')
+        dt = vals[1]-vals[0]
+        ax.set(xlim=(vals[0]-1*dt/8, vals[0]+1*dt/8))
+        #ax.set(xlim=(vals[0]-2*dt, vals[-1]+2*dt))
+
+        #ax.legend()
         cols[1].pyplot(fig)
    
-    return true_starts
+    return vals, errs
 
-def look4many(filenames, cols):
-    all_starts = {}
+def look4many(filenames):
+    vals_many = {}
+    errs_many = {}
     for filename in filenames[:]:
-        all_starts[filename[11:-4]] = look4peaks(filename)
+        vals, errs = look4peaks(filename)
+        vals_many[filename[11:-4]] = vals
+        errs_many[filename[11:-4]] = errs
 
-    df = pd.DataFrame(all_starts).T
-    df.reset_index(inplace=True)
-    df['size'] = df['index'].apply(lambda x: x.split("_")[1])
-    df['flip'] = df['index'].apply(lambda x: x.split("_")[2])
+    df_vals = pd.DataFrame(vals_many).T
+    df_errs = pd.DataFrame(errs_many).T
+    
+    for df in [df_vals, df_errs]:
+        df.reset_index(inplace=True)
+        df['size'] = df['index'].apply(lambda x: x.split("_")[1])
+        df['flip'] = df['index'].apply(lambda x: x.split("_")[2])
+    
 
-    for i in range(1,5):
-        df[i]=df[i]-df[0]
-    df[0] = 0
-
-    return df
+    return df_vals, df_errs
 
 def quadratic(x, a, b, c):
         return 1/2*a*x**2. + b*x + c
 
-def extract_values_for_fit(df):
-    fit_values = {}
+def extract_values_for_fit(df_vals, df_errs):
+    xyyerr_values = {}
     
     for size in ['small', 'large']:
         for flip in [0, 180]:
-            df2 = df[ (df['size']==size) & (df['flip']==flip) ]
-            X = df2.values[:,1:-2]
+            df_vals2 = df_vals[ (df_vals['size']==size) & (df_vals['flip']==flip) ]
+            df_errs2 = df_errs[ (df_errs['size']==size) & (df_errs['flip']==flip) ]
+
+            X = df_vals2.values[:,1:-2]
+            X = (X.T - X[:,0]).T
+
+            Xerr = df_errs2.values[:,1:-2]
 
             pos = np.array([gate_positions_fmt]*len(X)).T.flatten()
             times = X.T.flatten()
+            times_errs = Xerr.T.flatten()
             
-            fit_values[size+str(flip)] = (times, pos)
+            xyyerr_values[size+str(flip)] = (times, pos, times_errs)
 
-    return fit_values
+    return xyyerr_values
 
 def fit_and_plot(xy_values):
     fig, ax = plt.subplots(1,4, figsize=(12,3))
@@ -106,7 +127,7 @@ def fit_and_plot(xy_values):
     for size in ['small', 'large']:
         for flip in [0, 180]:
             name = size+str(flip)
-            (times, pos) = xy_values[name]
+            (times, pos, times_errs) = xy_values[name]
             ax[i].scatter(times, pos, s=4)
 
             ax[i].set(title=name, xlabel='time', ylabel='position')
@@ -162,20 +183,25 @@ def calculate_g(fit_values):
 '## Looking for peaks'
 cols = st.columns(2)
 cols[0].write(f'we have {len(filenames)} files, but lets start with just extracting from one!')
-# file selector:
 filename = cols[0].selectbox('filename', filenames)
-true_starts = look4peaks(filename, plot=True, cols=cols)
+vals, errs = look4peaks(filename, plot=True, cols=cols)
 
 
 '''Now lets look at all of them'''
-#df = look4many(filenames, st); df.to_csv('peaks.csv')
-df = pd.read_csv('peaks.csv', index_col=0)
+#df_vals, df_errs = look4many(filenames); 
+#df_vals.to_csv('peaks_vals.csv')
+#df_errs.to_csv('peaks_errs.csv')
 
 
-xy_values = extract_values_for_fit(df)
+# load
+df_vals = pd.read_csv('peaks_vals.csv', index_col=0)
+df_errs = pd.read_csv('peaks_errs.csv', index_col=0)
 
 
-fit_values = fit_and_plot(xy_values)
+xyyerr_values = extract_values_for_fit(df_vals, df_errs)
+
+
+fit_values = fit_and_plot(xyyerr_values)
 
 
 '#### Results'
