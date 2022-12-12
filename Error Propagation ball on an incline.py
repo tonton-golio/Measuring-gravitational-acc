@@ -1,6 +1,7 @@
 #Error propagation for a ball on an incline experiment
 import sys
-sys.path.append('C:/Users/micha/OneDrive - University of Copenhagen/Kode/Applied Statistics/GitHub/External_Functions')
+#sys.path.append('C:/Users/micha/OneDrive - University of Copenhagen/Kode/Applied Statistics/GitHub/External_Functions')
+sys.path.append('/home/asp/Downloads/Applied Statistics/AppStat2022-main/External_Functions')
 import numpy as np
 from sympy import *
 from iminuit import Minuit    

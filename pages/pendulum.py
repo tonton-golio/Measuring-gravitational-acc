@@ -1,9 +1,121 @@
 import matplotlib.pyplot as plt
 from matplotlib.gridspec import GridSpec
+import numpy as np
 import seaborn as sns
-from uncertainties import ufloat
+from uncertainties import ufloat, unumpy
 from math import pi
 from utils import *
+import pandas as pd
+from scipy.optimize import curve_fit
+from statistics import stdev
+
+def lin_func(x,a,b):
+    return a*x + b
+
+def grav_acc(L,T):
+    return L*(2*pi/T)**2
+
+def length_of_pend(pend_other_data):
+    L_pend = unumpy.uarray(pend_other_data.iloc[0].to_numpy()[1::2],
+                           pend_other_data.iloc[0].to_numpy()[2::2])
+    L_pend_mean = np.mean(L_pend)
+    print('Pendulum length (m):', L_pend_mean/1000)
+    mass = unumpy.uarray(pend_other_data.iloc[1].to_numpy()[1::2],
+                         pend_other_data.iloc[1].to_numpy()[2::2])
+    mass_mean = np.mean(mass)
+    L_hook = unumpy.uarray(pend_other_data.iloc[2].to_numpy()[1::2],
+                           pend_other_data.iloc[2].to_numpy()[2::2])
+    L_hook_mean = np.mean(L_hook)
+    L_mass_ground = unumpy.uarray(pend_other_data.iloc[3].to_numpy()[1::2],
+                                  pend_other_data.iloc[3].to_numpy()[2::2])
+    L_mass_ground_mean = np.mean(L_mass_ground)
+    print('Distance Pendulum Ground (m):',L_mass_ground_mean/100)
+    L_mass_without_hook = unumpy.uarray(pend_other_data.iloc[4].to_numpy()[1::2],
+                                     pend_other_data.iloc[4].to_numpy()[2::2])
+    L_mass_without_hook_mean = np.mean(L_mass_without_hook)
+    print('Width of Pendulum (without hook) (m):',L_mass_without_hook_mean)
+    L_mass_with_hook = unumpy.uarray(pend_other_data.iloc[5].to_numpy()[1::2],
+                                        pend_other_data.iloc[5].to_numpy()[2::2])
+    L_mass_with_hook_mean = np.mean(L_mass_with_hook)
+    L_pend_tape = unumpy.uarray(pend_other_data.iloc[6].to_numpy()[1::2],
+                                pend_other_data.iloc[6].to_numpy()[2::2])
+    L_pend_tape_mean = np.mean(L_pend_tape)
+    print('Distance Pendulum Ground with tape measure (m):',L_pend_tape_mean/1000)
+    
+    return (L_pend_mean-L_mass_ground_mean*10-L_mass_without_hook_mean*10/2)/1000
+
+def get_periods(pend_time):
+    
+    def plot_swings_vs_period(name = False, include_Imke_Anton = False):
+        fig, ax = plt.subplots(dpi = 400)
+        ax.scatter(n_swings_Adrian, time_Adrian, label = 'Adrian')
+        popt, pcov = curve_fit(lin_func,n_swings_Adrian, time_Adrian)
+        ax.plot(n_swings_Adrian,lin_func(n_swings_Adrian, *popt))
+        ax.scatter(n_swings_Majbritt, time_Majbritt, label = 'Majbritt')
+        popt, pcov = curve_fit(lin_func,n_swings_Majbritt, time_Majbritt)
+        ax.plot(n_swings_Majbritt,lin_func(n_swings_Majbritt, *popt))
+        ax.scatter(n_swings_Michael, time_Michael, label = 'Michael')
+        popt, pcov = curve_fit(lin_func,n_swings_Michael, time_Michael)
+        ax.plot(n_swings_Michael,lin_func(n_swings_Michael, *popt))
+        if include_Imke_Anton == True:
+            ax.scatter(n_swings_Anton, time_Anton, label = 'Anton')
+            popt, pcov = curve_fit(lin_func,n_swings_Anton, time_Anton)
+            ax.plot(n_swings_Anton,lin_func(n_swings_Anton, *popt))
+            ax.scatter(n_swings_Imke, time_Imke, label = 'Imke')
+            popt, pcov = curve_fit(lin_func,n_swings_Imke, time_Imke)
+            ax.plot(n_swings_Imke,lin_func(n_swings_Imke, *popt))
+        ax.set_ylabel(r'Period $T$ in s')
+        ax.set_xlabel(r'$n$ Swings')
+        ax.legend()
+        ax.grid()
+        if name != False:
+            fig.savefig(name, dpi = 400)
+        return True
+    
+    n_swings = pend_time.iloc[:,0].to_numpy()
+    
+    time_Anton = pend_time.iloc[:,1].to_numpy()
+    time_Anton = time_Anton[~np.isnan(time_Anton)]
+    time_Anton = time_Anton[1:] - time_Anton[0:-1]
+    n_swings_Anton = n_swings[:len(time_Anton)]
+    time_Adrian = pend_time.iloc[:,2].to_numpy()
+    time_Adrian = time_Adrian[~np.isnan(time_Adrian)]
+    time_Adrian = time_Adrian[1:] - time_Adrian[0:-1]
+    n_swings_Adrian = n_swings[:len(time_Adrian)]
+    time_Imke = pend_time.iloc[:,3].to_numpy()
+    time_Imke = time_Imke[~np.isnan(time_Imke)]
+    time_Imke = time_Imke[1:] - time_Imke[0:-1]
+    n_swings_Imke = n_swings[:len(time_Imke)]
+    time_Majbritt = pend_time.iloc[:,4].to_numpy()
+    time_Majbritt = time_Majbritt[~np.isnan(time_Majbritt)]
+    time_Majbritt = time_Majbritt[1:] - time_Majbritt[0:-1]
+    n_swings_Majbritt = n_swings[:len(time_Majbritt)]
+    time_Michael = pend_time.iloc[:,5].to_numpy()
+    time_Michael = time_Michael[~np.isnan(time_Michael)]
+    time_Michael = time_Michael[1:] - time_Michael[0:-1]
+    n_swings_Michael = n_swings[:len(time_Michael)]
+
+    #plot_swings_vs_period()
+    
+    time_Adrian = np.delete(time_Adrian, [21,22])
+    n_swings_Adrian = n_swings[:len(time_Adrian)]
+    time_Michael = time_Michael[:-4]
+    n_swings_Michael = n_swings[:len(time_Michael)]
+    
+    plot_swings_vs_period('period_vs_swings.pdf', include_Imke_Anton = True)
+    
+    plot_swings_vs_period('period_vs_swings.pdf')
+
+    period_Anton = ufloat(np.mean(time_Anton),stdev(time_Anton))
+    period_Adrian = ufloat(np.mean(time_Adrian),stdev(time_Adrian))
+    period_Imke = ufloat(np.mean(time_Imke),stdev(time_Imke))
+    period_Majbritt = ufloat(np.mean(time_Majbritt),stdev(time_Majbritt))
+    period_Michael = ufloat(np.mean(time_Michael),stdev(time_Michael))
+    
+    periods = [period_Adrian, period_Majbritt, period_Michael, 
+               period_Imke, period_Anton]
+    names = ['Adrian', 'Majbritt', 'Michael', 'Imke', 'Anton']
+    return names, periods
 
 def times_func():
 	def prepDataFrame():
@@ -114,6 +226,28 @@ def otherMeasurements(): # L
 
 	return weigted_dict, df_orig, fig
 
+def return_L_T_g():
+    pend_other_data = pd.read_csv('data_project1 - pendul_other.csv',
+                                  skiprows=[0])
+    pend_time = pd.read_csv('data_project1 - pendul_time.csv')
+    
+    names, periods = get_periods(pend_time)
+    
+    print(names)
+    print(periods)
+    
+    #period including Anton and Imke
+    #T = (period_Anton + period_Adrian + period_Imke + period_Majbritt + period_Michael)/5
+    #print(T)
+    
+    #period without Anton and Imke
+    T = np.sum(periods[:3])/3
+    print(T)
+    L = length_of_pend(pend_other_data)
+    
+    print(grav_acc(L,T))
+    return L,T,grav_acc(L,T)
+
 def main(): # Main render script
 	r"""
 	# Pendulum
@@ -122,12 +256,13 @@ def main(): # Main render script
 		g = L\left(\frac{2\pi}{T}\right)^2
 	$$
 	"""
-
-
+    
+	L,T,g = return_L_T_g()
+    
 	############ T
 	"##### Period"
 
-	T, fig = times_func()
+	T2, fig = times_func()
 	st.pyplot(fig)
 
 	st.markdown(
@@ -142,7 +277,7 @@ def main(): # Main render script
 	"##### Length"
 
 	weigted_dict, df, fig =  otherMeasurements()
-	L = weigted_dict['Pendulum Length (all made by adrian in mm)']/1000 # m
+	L2 = weigted_dict['Pendulum Length (all made by adrian in mm)']/1000 # m
 
 	with st.expander('raw', expanded=False):
 		df
@@ -161,11 +296,7 @@ def main(): # Main render script
 	#L = ufloat(18.728, 0.0005) # i think this uncertainty is too small
 	#T = ufloat(8.640, 0.100)
 
-	def grav_acc(L,T):
-		return L*(2*pi/T)**2
-
 	g_real = 9.81563 #at (55.697039, 12.571243)
-	g = grav_acc(L,T)
 
 	st.markdown(
 	"""
