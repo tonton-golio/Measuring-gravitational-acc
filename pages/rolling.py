@@ -152,7 +152,7 @@ def look4many(filenames):
     return df_vals, df_errs
 
 def quadratic(x, a, b, c):
-        return 1/2*a*x**2. + b*x + c
+    return 1/2*a*x**2. + b*x + c
 
 def extract_values_for_fit(df_vals, df_errs):
     xyyerr_values = {}
@@ -187,16 +187,16 @@ def fit_and_plot(xy_values):
             ax[i].scatter(times, pos, s=4)
 
             ax[i].set(title=name, xlabel='time', ylabel='position')
-            """
-            chi2_object_simple = Chi2Regression(quadratic, times, pos)
-            m = Minuit(chi2_object_simple, a=1.0, b=1.0, c=1.0)
-            m.errordef = Minuit.LEAST_SQUARES  # == 1
+            
+            chi2_object_fit = Chi2Regression(quadratic, times, pos, times_errs)
+            m = Minuit(chi2_object_fit, a=1.5, b=0.5, c=1.0)
+            m.errordef = 1
             m.migrad()
             """
             c = cost.LeastSquares(times, pos, 0.01, quadratic)
             m = Minuit(c, 1.5, 0.5, 1)
             m.migrad()
-            
+            """
             
 
             vals = [m.values[p] for p in 'a b c'.split()]
@@ -237,7 +237,11 @@ def calculate_g(fit_values):
             $$
                 g = {:10.4f}
             $$
-            """.format(size, flip, g))
+            with
+            $$
+                a = {:10.4f}
+            $$
+            """.format(size, flip, g, a))
 
                 
 ############

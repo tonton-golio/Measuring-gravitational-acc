@@ -27,7 +27,7 @@ def gauss_norm(x, mu, sigma, N) :
 #Setting values
 #a:x, theta:y, ball:z, rail:q
 #Acceleration fit and uncertainty
-a, a_err = 1.6, 0.0001              #[m/s^2]
+a, a_err = 1.5743, 0.0367              #[m/s^2]
 #Angle of table and uncertainty
 #Setup 000deg
 theta, theta_err = 14.00, 0.08         #[Deg]
@@ -101,9 +101,9 @@ print(f'Analytical Method: g is {ganal} with sigma={ganalsigma}')
 #__________________________________ Plotting __________________________________
 fig, (ax1, ax2) = plt.subplots(figsize=(13, 4), ncols=2,tight_layout=True)
 
-arctheta = [np.arcsin(theta_gauss[i]) for i in range(Npoints)]
+arctheta = [np.arcsin(deg_to_rad(theta_gauss[i])) for i in range(Npoints)]
 
-hist1 = ax1.hist(g, bins=nbins, range=(9.5, 10), histtype='step', linewidth=2, color='grey', label='Simulated Error')
+hist1 = ax1.hist(g, bins=nbins, range=(9.81-5, 9.81+5), histtype='step', linewidth=2, color='grey', label='Simulated Error')
 hist2 = ax2.hist(arctheta, bins=nbins, range=(4, 4.3), histtype='step', linewidth=2, color='blue', label='Inverse Sinus Error')
 
 binwidth = (10-9.5) / nbins 
