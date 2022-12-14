@@ -161,6 +161,8 @@ def look4peaks(filename, how='leading', plot=False,show_all=False):
 
         ax.get_legend().remove()
         ax.set(ylabel='Voltage')
+        plt.tight_layout()
+        plt.savefig('spike_id.pdf', dpi=400)
         st.pyplot(fig)
    
     return vals, errs
