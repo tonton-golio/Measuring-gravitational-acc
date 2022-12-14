@@ -104,6 +104,7 @@ def look4peaks(filename, how='leading', plot=False,show_all=False):
             if V > 4.758: 
                 if prev == False:
                     pnum +=1
+                    
                     active_dict[pnum] = []
                 prev = True
                 active_dict[pnum].append(t)
@@ -111,7 +112,7 @@ def look4peaks(filename, how='leading', plot=False,show_all=False):
                 prev = False
         vals = [np.mean(active_dict[peak]) for peak in active_dict]
 
-        errs = [2*np.std(active_dict[peak]) for peak in active_dict]
+        errs = [np.std(active_dict[peak]) for peak in active_dict]
 
     elif how == 'leading':
         active = False
@@ -127,6 +128,7 @@ def look4peaks(filename, how='leading', plot=False,show_all=False):
                 if V > minV: 
                     active = True
                     pnum +=1
+                    if pnum == 5: break
                     active_dict[pnum] = [t]
 
             elif active:
@@ -142,12 +144,12 @@ def look4peaks(filename, how='leading', plot=False,show_all=False):
                 
         vals = [np.mean(active_dict[peak]['incline']) for peak in active_dict]
 
-        errs = [2*np.std(active_dict[peak]['incline']) for peak in active_dict]
+        errs = [np.std(active_dict[peak]['incline']) for peak in active_dict]
 
     
     if plot:
         st.write(f'Number of peaks found = {len(vals)}')
-        fig, ax = plt.subplots()
+        fig, ax = plt.subplots(figsize=(5,3))
         df.plot(ax=ax)
         for v, e in zip(vals, errs):
             ax.axvline(v, ls='--', c='r', label='midpoint')
@@ -157,7 +159,8 @@ def look4peaks(filename, how='leading', plot=False,show_all=False):
         ax.set(xlim=(vals[0]-1*dt/8, vals[0]+1*dt/8))
         if show_all: ax.set(xlim=(vals[0]-2*dt, vals[-1]+2*dt))
 
-        #ax.legend()
+        ax.get_legend().remove()
+        ax.set(ylabel='Voltage')
         st.pyplot(fig)
    
     return vals, errs
@@ -206,7 +209,7 @@ def extract_values_for_fit(df_vals, df_errs):
     return xyyerr_values
 
 def fit_and_plot(xy_values):
-    fig, ax = plt.subplots(1,2, figsize=(12,3), sharex=True, sharey=True)
+    fig, ax = plt.subplots(1,2, figsize=(6,3), sharex=True, sharey=True)
     i = 0
     fit_vals = {}
     for size in ['small', 'large']:
@@ -226,11 +229,15 @@ def fit_and_plot(xy_values):
             errs = [m.errors[p] for p in 'a b c'.split()]
 
             x_plot = np.linspace(min(times), max(times), 100)
-            ax[i].plot(x_plot, quadratic(x_plot, *vals))
+            if flip == 0:
+                ax[i].plot(x_plot, quadratic(x_plot, *vals), label='not flipped')
+            else:
+                ax[i].plot(x_plot, quadratic(x_plot, *vals), label='flipped')
             
 
             fit_vals[name] = (vals, errs)
         ax[i].set(title=f'{size} ball', xlabel='Time', ylabel='Position')
+        ax[i].legend()
         i+=1
 
     plt.tight_layout()
@@ -280,23 +287,28 @@ show_all = cols[2].radio('show_all?', [True, False])
 vals, errs = look4peaks(filename, how=how, plot=True, show_all=show_all)
 
 
-'''Now lets look at all of them'''
-#df_vals, df_errs = look4many(filenames); 
-#df_vals.to_csv('peaks_vals.csv')
-#df_errs.to_csv('peaks_errs.csv')
 
+'''
+### Doing this for all the runs
+'''
+run_or_load = st.radio('run or load', ['load', 'run'])
+if run_or_load == 'run':
+    
+    df_vals, df_errs = look4many(filenames); 
+    df_vals.to_csv('peaks_vals.csv')
+    df_errs.to_csv('peaks_errs.csv')
 
-# load
-df_vals = pd.read_csv('peaks_vals.csv', index_col=0)
-df_errs = pd.read_csv('peaks_errs.csv', index_col=0)
+else:
+    df_vals = pd.read_csv('peaks_vals.csv', index_col=0)
+    df_errs = pd.read_csv('peaks_errs.csv', index_col=0)
 
-
+#df_vals
 xyyerr_values = extract_values_for_fit(df_vals, df_errs)
-
+#xyyerr_values
 fit_values = fit_and_plot(xyyerr_values)
 
 
-'#### Results'
+'## Results'
 calculate_g(fit_values)
 
 
