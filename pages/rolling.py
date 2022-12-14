@@ -156,7 +156,7 @@ def look4peaks(filename, how='leading', plot=False,show_all=False):
             ax.axvline(v-e, ls='--', c='orange', label=r'midpoint-1 $\sigma$')
             ax.axvline(v+e, ls='--', c='orange', label=r'midpoint+1 $\sigma$')
         dt = vals[1]-vals[0]
-        ax.set(xlim=(vals[0]-1*dt/8, vals[0]+1*dt/8))
+        ax.set(xlim=(vals[0]-1*dt/64, vals[0]+1*dt/64))
         if show_all: ax.set(xlim=(vals[0]-2*dt, vals[-1]+2*dt))
 
         ax.get_legend().remove()
