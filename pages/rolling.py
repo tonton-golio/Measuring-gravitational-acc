@@ -89,34 +89,64 @@ other_measurements = {
 
 
 # funcs
-def look4peaks(filename, plot=False, cols=[]):
+def look4peaks(filename, how='leading', plot=False,show_all=False):
     
     prefix = 'inclline_ball_voltage_measurements/'
     df = pd.read_csv(prefix+filename, encoding='utf-8', header=[13], index_col=0)
-    prev = False
-    acti = {}
-    pnum = -1
-    for idx, t in enumerate(df.index):
+    
+    if how == 'mid':
+        prev = False
+        active_dict = {}
+        pnum = -1
+        for idx, t in enumerate(df.index):
 
-        V = df['Channel 1 (V)'].iloc[idx]
-        if V > 4.758: 
-            if prev == False:
-                pnum +=1
-                acti[pnum] = []
-            prev = True
-            acti[pnum].append(t)
-        else:
-            prev = False
-                
+            V = df['Channel 1 (V)'].iloc[idx]
+            if V > 4.758: 
+                if prev == False:
+                    pnum +=1
+                    active_dict[pnum] = []
+                prev = True
+                active_dict[pnum].append(t)
+            else:
+                prev = False
+        vals = [np.mean(active_dict[peak]) for peak in active_dict]
+
+        errs = [2*np.std(active_dict[peak]) for peak in active_dict]
+
+    elif how == 'leading':
+        active = False
+        active_dict = {}
+        pnum = -1
+        minV = min(df.values)*1.05
+        for idx, t in enumerate(df.index):
             
-    vals = [np.mean(acti[key]) for key in acti]
+            # voltage at the moment
+            V = df['Channel 1 (V)'].iloc[idx]
+            if V < minV: active = False
+            if not active:
+                if V > minV: 
+                    active = True
+                    pnum +=1
+                    active_dict[pnum] = [t]
 
-    errs = [2*np.std(acti[key]) for key in acti]
+            elif active:
+                if V < max(df.values):
+                    active_dict[pnum].append(t)
+  
+        for peak in active_dict:
+            mean_ = np.mean(active_dict[peak])
+            vals = np.array(active_dict[peak])
+            active_dict[peak] = {'incline' : vals[vals<mean_],
+                                'decline' : vals[vals>mean_]}
+        
+                
+        vals = [np.mean(active_dict[peak]['incline']) for peak in active_dict]
 
+        errs = [2*np.std(active_dict[peak]['incline']) for peak in active_dict]
 
     
     if plot:
-        cols[0].write(f'Number of peaks found = {len(vals)}')
+        st.write(f'Number of peaks found = {len(vals)}')
         fig, ax = plt.subplots()
         df.plot(ax=ax)
         for v, e in zip(vals, errs):
@@ -125,10 +155,10 @@ def look4peaks(filename, plot=False, cols=[]):
             ax.axvline(v+e, ls='--', c='orange', label=r'midpoint+1 $\sigma$')
         dt = vals[1]-vals[0]
         ax.set(xlim=(vals[0]-1*dt/8, vals[0]+1*dt/8))
-        #ax.set(xlim=(vals[0]-2*dt, vals[-1]+2*dt))
+        if show_all: ax.set(xlim=(vals[0]-2*dt, vals[-1]+2*dt))
 
         #ax.legend()
-        cols[1].pyplot(fig)
+        st.pyplot(fig)
    
     return vals, errs
 
@@ -175,9 +205,8 @@ def extract_values_for_fit(df_vals, df_errs):
 
     return xyyerr_values
 
-
 def fit_and_plot(xy_values):
-    fig, ax = plt.subplots(1,4, figsize=(12,3))
+    fig, ax = plt.subplots(1,2, figsize=(12,3), sharex=True, sharey=True)
     i = 0
     fit_vals = {}
     for size in ['small', 'large']:
@@ -186,29 +215,23 @@ def fit_and_plot(xy_values):
             (times, pos, times_errs) = xy_values[name]
             ax[i].scatter(times, pos, s=4)
 
-            ax[i].set(title=name, xlabel='time', ylabel='position')
+            
             
             chi2_object_fit = Chi2Regression(quadratic, times, pos, times_errs)
             m = Minuit(chi2_object_fit, a=1.5, b=0.5, c=1.0)
             m.errordef = 1
             m.migrad()
-            """
-            c = cost.LeastSquares(times, pos, 0.01, quadratic)
-            m = Minuit(c, 1.5, 0.5, 1)
-            m.migrad()
-            """
-            
 
             vals = [m.values[p] for p in 'a b c'.split()]
             errs = [m.errors[p] for p in 'a b c'.split()]
 
-
             x_plot = np.linspace(min(times), max(times), 100)
             ax[i].plot(x_plot, quadratic(x_plot, *vals))
-            i+=1
+            
 
             fit_vals[name] = (vals, errs)
-
+        ax[i].set(title=f'{size} ball', xlabel='Time', ylabel='Position')
+        i+=1
 
     plt.tight_layout()
     st.pyplot(fig)
@@ -248,10 +271,13 @@ def calculate_g(fit_values):
 # render
 '# Rolling'
 '## Looking for peaks'
-cols = st.columns(2)
-cols[0].write(f'we have {len(filenames)} files, but lets start with just extracting from one!')
+st.write(f'we have {len(filenames)} files, but lets start with just extracting from one!')
+
+cols = st.columns(3)
 filename = cols[0].selectbox('filename', filenames)
-vals, errs = look4peaks(filename, plot=True, cols=cols)
+how = cols[1].radio('how?', ['leading', 'mid'])
+show_all = cols[2].radio('show_all?', [True, False])
+vals, errs = look4peaks(filename, how=how, plot=True, show_all=show_all)
 
 
 '''Now lets look at all of them'''
